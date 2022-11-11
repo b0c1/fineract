@@ -170,6 +170,37 @@ public class ThitsaWorksCreditBureauIntegrationWritePlatformServiceImplTest {
     }
 
     @Test
+    public void okHttpNullUrlTest() throws IOException {
+
+        mockOkHttpCall(request -> createOkhttpResponse(request, 500, "Internal Server Error"));
+
+        PlatformDataIntegrityException raisedException = assertThrows(
+            PlatformDataIntegrityException.class, () -> {
+                underTest.okHttpConnectionMethod("testUser", "testPassword", "subscriptionKey",
+                    "subscriptionId", null,
+                    "AccessToken", null, null, 0L, "nrcId", "NRC");
+
+            });
+        assertEquals("error.msg.url.is.null.or.empty", raisedException.getGlobalisationMessageCode());
+    }
+
+    @Test
+    public void okHttpInvalidProcessTestTest() throws IOException {
+
+        mockOkHttpCall(request -> createOkhttpResponse(request, 500, "Internal Server Error"));
+
+        PlatformDataIntegrityException raisedException = assertThrows(
+            PlatformDataIntegrityException.class, () -> {
+                underTest.okHttpConnectionMethod("testUser", "testPassword", "subscriptionKey",
+                    "subscriptionId", "https://nrc.test.url.com",
+                    "AccessToken", null, null, 0L, "nrcId", "notValidProcess");
+
+            });
+        assertEquals("Invalid Process", raisedException.getGlobalisationMessageCode());
+    }
+
+
+    @Test
     public void okHttpIOExceptionTest() throws IOException {
         mockOkHttpCall(request -> {
             throw new IOException("IO Exception");

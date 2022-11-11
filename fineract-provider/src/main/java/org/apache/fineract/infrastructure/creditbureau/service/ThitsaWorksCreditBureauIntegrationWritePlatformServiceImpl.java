@@ -25,6 +25,7 @@ import static javax.ws.rs.core.MediaType.MULTIPART_FORM_DATA;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.File;
@@ -46,6 +47,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.commands.domain.CommandWrapper;
 import org.apache.fineract.commands.service.CommandWrapperBuilder;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
@@ -114,10 +116,10 @@ public class ThitsaWorksCreditBureauIntegrationWritePlatformServiceImpl implemen
             String token, File file, FormDataContentDisposition fileData, Long uniqueId, String nrcId, @NotNull String process) {
 
         String reponseMessage = null;
-        HttpUrl urlBuilder = HttpUrl.parse(url);
-        if (urlBuilder == null) {
-            throw new PlatformDataIntegrityException("error.msg.url.is.null", "Url is null");
+        if (StringUtils.isBlank(url)) {
+            throw new PlatformDataIntegrityException("error.msg.url.is.null.or.empty", "URL is null or empty");
         }
+        HttpUrl urlBuilder = HttpUrl.parse(url);
         String urlokhttp = urlBuilder.toString();
         Request request = null;
         Request.Builder baseRequestBuilder = createRequestBuilder(subscriptionKey, subscriptionId, token, urlokhttp);
