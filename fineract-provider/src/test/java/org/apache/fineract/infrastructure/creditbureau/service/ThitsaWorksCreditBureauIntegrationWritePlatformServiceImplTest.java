@@ -468,8 +468,7 @@ public class ThitsaWorksCreditBureauIntegrationWritePlatformServiceImplTest {
         assertEquals("ADD_CREDIT_RESPONSE", result.getDefaultUserMessage());
     }
 
-    // TODO: if no borrower is throw NPE
-    // @Test
+    @Test
     public void getCreditReportFromThitsaWorksEmptyBorrowerTest() throws IOException {
         mockTokenGeneration();
         mockOkHttpCall(request -> {
@@ -499,8 +498,7 @@ public class ThitsaWorksCreditBureauIntegrationWritePlatformServiceImplTest {
         assertNotNull(result.getCreditScore());
     }
 
-    // TODO: empty gender not handler correctly (NPE)
-    // @Test
+    @Test
     public void getCreditReportFromThitsaWorksNoGenderTest() throws IOException {
         mockTokenGeneration();
         mockOkHttpCall(request -> {
@@ -534,8 +532,7 @@ public class ThitsaWorksCreditBureauIntegrationWritePlatformServiceImplTest {
         assertNotNull(result.getCreditScore());
     }
 
-    // TODO: null credit script invalid result
-    // @Test
+    @Test
     public void getCreditReportFromThitsaWorksNoLoansTest() throws IOException {
         mockTokenGeneration();
         mockOkHttpCall(request -> {
