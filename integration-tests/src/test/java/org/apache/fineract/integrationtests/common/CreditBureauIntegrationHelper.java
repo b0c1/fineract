@@ -18,9 +18,12 @@
  */
 package org.apache.fineract.integrationtests.common;
 
+import static io.restassured.RestAssured.given;
+
 import com.google.gson.Gson;
 import io.restassured.specification.RequestSpecification;
 import io.restassured.specification.ResponseSpecification;
+import java.io.File;
 import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +46,16 @@ public class CreditBureauIntegrationHelper {
                 + Utils.TENANT_IDENTIFIER;
         return Utils.performServerPost(requestSpec, responseSpec, CREDITBUREAU_CONFIGURATION_URL,
                 createGetCreditReportAsJson(creditBureauId, nrc), null);
+    }
+
+    public static String uploadCreditReport(final RequestSpecification requestSpec, final ResponseSpecification responseSpec,
+            final String creditBureauId, File file) {
+        LOG.info("---------------------------------CREATING A CREDIT_BUREAU_CONFIGURATION---------------------------------------------");
+        final String CREDITBUREAU_CONFIGURATION_URL = "/fineract-provider/api/v1/creditBureauIntegration/addCreditReport?"
+                + Utils.TENANT_IDENTIFIER;
+        return given().spec(requestSpec).queryParam("creditBureauId", creditBureauId).contentType("multipart/form-data")
+                .multiPart("file", file).expect().spec(responseSpec).log().ifError().when().post(CREDITBUREAU_CONFIGURATION_URL).andReturn()
+                .asString();
     }
 
     public static String createGetCreditReportAsJson(final String creditBureauId, final String nrc) {

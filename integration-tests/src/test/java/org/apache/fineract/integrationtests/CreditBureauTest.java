@@ -69,6 +69,13 @@ public class CreditBureauTest {
     }
 
     private void configureCreditBureauService() {
+        Object organisations = CreditBureauConfigurationHelper.getOrganizationCreditBureauConfiguration(this.requestSpec,
+                this.responseSpec);
+        if (organisations != null) {
+            CreditBureauConfigurationHelper.updateOrganisationCreditBureau(this.requestSpec, this.responseSpec, "1", true);
+        } else {
+            CreditBureauConfigurationHelper.addOrganisationCreditBureau(this.requestSpec, this.responseSpec, "1", "SAMPLE_ALIAS", true);
+        }
         List<Map<String, Object>> configurations = CreditBureauConfigurationHelper.getCreditBureauConfiguration(requestSpec, responseSpec,
                 "1");
         Assertions.assertNotNull(configurations);
@@ -76,26 +83,31 @@ public class CreditBureauTest {
                 .toMap(k -> String.valueOf(k.get("configurationKey")).toUpperCase(), v -> (int) v.get("creditBureauConfigurationId"))
                 .toJavaMap();
         final Object usernameConfigurationId = CreditBureauConfigurationHelper.updateCreditBureauConfiguration(this.requestSpec,
-                this.responseSpec, currentConfiguration.get("USERNAME").intValue(), "testUser");
+                this.responseSpec, currentConfiguration.get("USERNAME").intValue(), "USERNAME", "testUser");
         Assertions.assertNotNull(usernameConfigurationId);
         final Object passwordConfigurationId = CreditBureauConfigurationHelper.updateCreditBureauConfiguration(this.requestSpec,
-                this.responseSpec, currentConfiguration.get("PASSWORD").intValue(), "testPassword");
+                this.responseSpec, currentConfiguration.get("PASSWORD").intValue(), "PASSWORD", "testPassword");
         Assertions.assertNotNull(passwordConfigurationId);
         final Object creditReportUrlConfigurationId = CreditBureauConfigurationHelper.updateCreditBureauConfiguration(this.requestSpec,
-                this.responseSpec, currentConfiguration.get("CREDITREPORTURL").intValue(), "http://localhost:3558/report/");
+                this.responseSpec, currentConfiguration.get("CREDITREPORTURL").intValue(), "CREDITREPORTURL",
+                "http://localhost:3558/report/");
         Assertions.assertNotNull(creditReportUrlConfigurationId);
         final Object searchUrlConfigurationId = CreditBureauConfigurationHelper.updateCreditBureauConfiguration(this.requestSpec,
-                this.responseSpec, currentConfiguration.get("SEARCHURL").intValue(), "http://localhost:3558/search/");
+                this.responseSpec, currentConfiguration.get("SEARCHURL").intValue(), "SEARCHURL", "http://localhost:3558/search/");
         Assertions.assertNotNull(searchUrlConfigurationId);
         final Object tokenUrlConfigurationId = CreditBureauConfigurationHelper.updateCreditBureauConfiguration(this.requestSpec,
-                this.responseSpec, currentConfiguration.get("TOKENURL").intValue(), "http://localhost:3558/token/");
+                this.responseSpec, currentConfiguration.get("TOKENURL").intValue(), "TOKENURL", "http://localhost:3558/token/");
         Assertions.assertNotNull(tokenUrlConfigurationId);
         final Object subscriptionIdConfigurationId = CreditBureauConfigurationHelper.updateCreditBureauConfiguration(this.requestSpec,
-                this.responseSpec, currentConfiguration.get("SUBSCRIPTIONID").intValue(), "subscriptionID123");
+                this.responseSpec, currentConfiguration.get("SUBSCRIPTIONID").intValue(), "SUBSCRIPTIONID", "subscriptionID123");
         Assertions.assertNotNull(subscriptionIdConfigurationId);
         final Object subscriptionKeyConfigurationId = CreditBureauConfigurationHelper.updateCreditBureauConfiguration(this.requestSpec,
-                this.responseSpec, currentConfiguration.get("SUBSCRIPTIONKEY").intValue(), "subscriptionKey456");
+                this.responseSpec, currentConfiguration.get("SUBSCRIPTIONKEY").intValue(), "SUBSCRIPTIONKEY", "subscriptionKey456");
         Assertions.assertNotNull(subscriptionKeyConfigurationId);
+        final Object addCreditReportUrlId = CreditBureauConfigurationHelper.updateCreditBureauConfiguration(this.requestSpec,
+                this.responseSpec, currentConfiguration.get("ADDCREDITREPORTURL").intValue(), "addCreditReporturl",
+                "http://localhost:3558/upload/");
+        Assertions.assertNotNull(addCreditReportUrlId);
 
     }
 
@@ -170,4 +182,5 @@ public class CreditBureauTest {
         Assertions.assertEquals(0, responseData.getClosedAccounts().length);
         Assertions.assertEquals(0, responseData.getOpenAccounts().length);
     }
+
 }
