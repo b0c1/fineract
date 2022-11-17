@@ -16,20 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.cob.loan;
+package org.apache.fineract.infrastructure.event.external.service.serialization.mapper.loan;
 
-public final class LoanCOBConstant {
+import org.apache.fineract.avro.loan.v1.DelinquencyRangeDataV1;
+import org.apache.fineract.infrastructure.event.external.service.serialization.mapper.support.AvroMapperConfig;
+import org.apache.fineract.portfolio.delinquency.data.DelinquencyRangeData;
+import org.mapstruct.Mapper;
 
-    public static final String JOB_NAME = "LOAN_COB";
-    public static final String LOAN_COB_JOB_NAME = "LOAN_CLOSE_OF_BUSINESS";
-    public static final String LOAN_IDS = "loanIds";
-    public static final String BUSINESS_STEP_MAP = "businessStepMap";
-    public static final String LOAN_COB_WORKER_STEP = "loanCOBWorkerStep";
+@Mapper(config = AvroMapperConfig.class)
+public interface LoanDelinquencyRangeDataMapper {
 
-    public static final String ALREADY_LOCKED_BY_INLINE_COB_OR_PROCESSED_LOAN_IDS = "alreadyLockedOrProcessedLoanIds";
-    public static final String INLINE_LOAN_COB_JOB_NAME = "INLINE_LOAN_COB";
-
-    private LoanCOBConstant() {
-
-    }
+    DelinquencyRangeDataV1 map(DelinquencyRangeData source);
 }

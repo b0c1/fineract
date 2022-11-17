@@ -16,20 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.cob.loan;
+package org.apache.fineract.cob.exceptions;
 
-public final class LoanCOBConstant {
+public class LoanAccountWasAlreadyLockedOrProcessed extends Exception {
 
-    public static final String JOB_NAME = "LOAN_COB";
-    public static final String LOAN_COB_JOB_NAME = "LOAN_CLOSE_OF_BUSINESS";
-    public static final String LOAN_IDS = "loanIds";
-    public static final String BUSINESS_STEP_MAP = "businessStepMap";
-    public static final String LOAN_COB_WORKER_STEP = "loanCOBWorkerStep";
-
-    public static final String ALREADY_LOCKED_BY_INLINE_COB_OR_PROCESSED_LOAN_IDS = "alreadyLockedOrProcessedLoanIds";
-    public static final String INLINE_LOAN_COB_JOB_NAME = "INLINE_LOAN_COB";
-
-    private LoanCOBConstant() {
-
+    public LoanAccountWasAlreadyLockedOrProcessed(Long loanId) {
+        super(String.format("Loan is in already locked state, or has been already processed! loanId: %d", loanId));
     }
 }

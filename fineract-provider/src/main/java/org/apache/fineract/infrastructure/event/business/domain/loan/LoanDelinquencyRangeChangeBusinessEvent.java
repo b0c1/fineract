@@ -16,11 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.cob.exceptions;
+package org.apache.fineract.infrastructure.event.business.domain.loan;
 
-public class LoanAccountWasAlreadyLocked extends Exception {
+import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 
-    public LoanAccountWasAlreadyLocked(Long loanId) {
-        super(String.format("Loan is in already locked state! loanId: %d", loanId));
+public class LoanDelinquencyRangeChangeBusinessEvent extends LoanBusinessEvent {
+
+    private static final String TYPE = "LoanDelinquencyRangeChangeBusinessEvent";
+
+    public LoanDelinquencyRangeChangeBusinessEvent(Loan value) {
+        super(value);
+    }
+
+    @Override
+    public String getType() {
+        return TYPE;
     }
 }
