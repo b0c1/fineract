@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.fineract.batch.exception.ErrorHandler;
 import org.apache.fineract.batch.exception.ErrorInfo;
 import org.apache.fineract.commands.domain.CommandProcessingResultType;
 import org.apache.fineract.commands.domain.CommandSource;
@@ -56,6 +55,8 @@ import org.apache.fineract.useradministration.domain.AppUser;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 @Service
 @Slf4j
@@ -71,54 +72,52 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
     private final IdempotencyKeyResolver idempotencyKeyResolver;
     private final IdempotencyKeyGenerator idempotencyKeyGenerator;
     private final CommandSourceService commandSourceService;
+    private final Gson gson = new Gson();
 
     @Override
     @Retry(name = "executeCommand", fallbackMethod = "fallbackExecuteCommand")
     public CommandProcessingResult executeCommand(final CommandWrapper wrapper, final JsonCommand command,
             final boolean isApprovedByChecker) {
+        // Do not store the idempotency key because of the exception handling
+        setIdempotencyKeyStoreFlag(false);
 
         final boolean rollbackTransaction = configurationDomainService.isMakerCheckerEnabledForTask(wrapper.taskPermissionName());
         String idempotencyKey = idempotencyKeyResolver.resolve(wrapper);
         checkExistingCommand(wrapper, idempotencyKey);
 
-        commandSourceService.saveInitial(wrapper, command, context.authenticatedUser(wrapper), idempotencyKey);
+        // Store idempotency key to the request attribute
+
+        CommandSource savedCommandSource = commandSourceService.saveInitial(wrapper, command, context.authenticatedUser(wrapper),
+                idempotencyKey);
+        if(savedCommandSource.getId()==null) {
+            throw new IllegalStateException("Command source not saved");
+        }
+        RequestContextHolder.currentRequestAttributes().setAttribute("commandSourceId", savedCommandSource.getId(),
+                RequestAttributes.SCOPE_REQUEST);
+        setIdempotencyKeyStoreFlag(true);
 
         final CommandProcessingResult result;
         try {
             result = findCommandHandler(wrapper).processCommand(command);
-        } catch (Throwable t) {
-            ErrorInfo ex;
-            if (t instanceof final RuntimeException e) {
-                ex = ErrorHandler.handler(e);
-            } else {
-                ex = new ErrorInfo(500, 9999, "{\"Exception\": " + t.toString() + "}");
-            }
-            publishHookEvent(wrapper.entityName(), wrapper.actionName(), command, ex);
-            commandSourceService.saveFailed(ex.getMessage(), commandSourceService.findCommandSource(wrapper, idempotencyKey));
+        } catch (Throwable t) { // NOSONAR
+            commandSourceService.saveFailed(commandSourceService.findCommandSource(wrapper, idempotencyKey));
+            publishHookErrorEvent(wrapper, command, t);
             throw t;
         }
 
-        CommandSource initialCommandSource = null;
-        try {
-            initialCommandSource = commandSourceService.findCommandSource(wrapper, idempotencyKey);
-            initialCommandSource.setResult(toApiJsonSerializer.serializeResult(result));
-            initialCommandSource.updateResourceId(result.getResourceId());
-            initialCommandSource.updateForAudit(result.getOfficeId(), result.getGroupId(), result.getClientId(), result.getLoanId(),
-                    result.getSavingsId(), result.getProductId(), result.getTransactionId());
+        CommandSource initialCommandSource = commandSourceService.findCommandSource(wrapper, idempotencyKey);
+        initialCommandSource.setResult(toApiJsonSerializer.serializeResult(result));
+        initialCommandSource.updateResourceId(result.getResourceId());
+        initialCommandSource.updateForAudit(result.getOfficeId(), result.getGroupId(), result.getClientId(), result.getLoanId(),
+                result.getSavingsId(), result.getProductId(), result.getTransactionId());
 
-            boolean rollBack = (rollbackTransaction || result.isRollbackTransaction()) && !isApprovedByChecker;
-            if (result.hasChanges() && !rollBack) {
-                initialCommandSource.setCommandJson(toApiJsonSerializer.serializeResult(result.getChanges()));
-            }
-
-            initialCommandSource.setStatus(CommandProcessingResultType.PROCESSED.getValue());
-            commandSourceService.saveResult(initialCommandSource);
-        } catch (Exception ex) {
-            if (initialCommandSource != null) {
-                commandSourceService.saveFailed(ex.getMessage(), commandSourceService.findCommandSource(wrapper, idempotencyKey));
-            }
-            throw ex;
+        boolean rollBack = (rollbackTransaction || result.isRollbackTransaction()) && !isApprovedByChecker;
+        if (result.hasChanges() && !rollBack) {
+            initialCommandSource.setCommandJson(toApiJsonSerializer.serializeResult(result.getChanges()));
         }
+
+        initialCommandSource.setStatus(CommandProcessingResultType.PROCESSED.getValue());
+        commandSourceService.saveResult(initialCommandSource);
 
         if ((rollbackTransaction || result.isRollbackTransaction()) && !isApprovedByChecker) {
             /*
@@ -140,6 +139,11 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
         return result;
     }
 
+    private void publishHookErrorEvent(CommandWrapper wrapper, JsonCommand command, Throwable t) {
+        ErrorInfo ex = commandSourceService.generateErrorException(t);
+        publishHookEvent(wrapper.entityName(), wrapper.actionName(), command, gson.toJson(ex));
+    }
+
     private void checkExistingCommand(CommandWrapper wrapper, String idempotencyKey) {
         CommandSource existingCommand = commandSourceService.findCommandSource(wrapper, idempotencyKey);
         if (existingCommand != null) {
@@ -148,12 +152,16 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
                         wrapper.getJson());
             } else if (ERROR.getValue().equals(existingCommand.getStatus())) {
                 throw new CommandFailedException(wrapper.actionName(), wrapper.entityName(), wrapper.getIdempotencyKey(),
-                        existingCommand.getResult());
+                        existingCommand.getResult(), existingCommand.getResultStatusCode());
             } else if (PROCESSED.getValue().equals(existingCommand.getStatus())) {
                 throw new CommandProcessedException(wrapper.actionName(), wrapper.entityName(), wrapper.getIdempotencyKey(),
                         existingCommand.getResult());
             }
         }
+    }
+
+    private void setIdempotencyKeyStoreFlag(boolean flag) {
+        RequestContextHolder.currentRequestAttributes().setAttribute("storeIdempotencyKey", flag, RequestAttributes.SCOPE_REQUEST);
     }
 
     @Transactional
@@ -244,7 +252,7 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
     }
 
     private void publishHookEvent(final String entityName, final String actionName, JsonCommand command, final Object result) {
-        Gson gson = new Gson();
+
         try {
             final AppUser appUser = context.authenticatedUser(CommandWrapper.wrap(actionName, entityName, null, null));
 

@@ -22,6 +22,8 @@ import static org.apache.fineract.commands.domain.CommandProcessingResultType.ER
 import static org.apache.fineract.commands.domain.CommandProcessingResultType.UNDER_PROCESSING;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.fineract.batch.exception.ErrorHandler;
+import org.apache.fineract.batch.exception.ErrorInfo;
 import org.apache.fineract.commands.domain.CommandSource;
 import org.apache.fineract.commands.domain.CommandSourceRepository;
 import org.apache.fineract.commands.domain.CommandWrapper;
@@ -56,15 +58,22 @@ public class CommandSourceService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.REPEATABLE_READ)
+    public void saveFailed(CommandSource commandSource) {
+        commandSource.setStatus(ERROR.getValue());
+        commandSourceRepository.saveAndFlush(commandSource);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.REPEATABLE_READ)
     public CommandSource saveResult(CommandSource commandSource) {
         return commandSourceRepository.saveAndFlush(commandSource);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.REPEATABLE_READ)
-    public void saveFailed(String msg, CommandSource commandSource) {
-        commandSource.setResult(msg);
-        commandSource.setStatus(ERROR.getValue());
-        commandSourceRepository.saveAndFlush(commandSource);
+    public ErrorInfo generateErrorException(Throwable t) {
+        if (t instanceof final RuntimeException e) {
+            return ErrorHandler.handler(e);
+        } else {
+            return new ErrorInfo(500, 9999, "{\"Exception\": " + t.toString() + "}");
+        }
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)

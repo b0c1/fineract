@@ -23,7 +23,14 @@ package org.apache.fineract.infrastructure.core.exception;
  */
 public class CommandFailedException extends DuplicateCommandException {
 
-    public CommandFailedException(String action, String entity, String idempotencyKey, String response) {
+    private final Integer statusCode;
+
+    public CommandFailedException(String action, String entity, String idempotencyKey, String response, Integer statusCode) {
         super(action, entity, idempotencyKey, response);
+        this.statusCode = statusCode;
+    }
+
+    public Integer getStatusCode() {
+        return statusCode;
     }
 }

@@ -112,6 +112,9 @@ public class CommandSource extends AbstractPersistableCustom {
     @Column(name = "result")
     private String result;
 
+    @Column(name = "result_status_code")
+    private Integer resultStatusCode;
+
     public static CommandSource fullEntryFrom(final CommandWrapper wrapper, final JsonCommand command, final AppUser maker,
             String idempotencyKey, Integer status) {
         return new CommandSource(wrapper.actionName(), wrapper.entityName(), wrapper.getHref(), command.entityId(), command.subentityId(),
@@ -308,5 +311,13 @@ public class CommandSource extends AbstractPersistableCustom {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Integer getResultStatusCode() {
+        return resultStatusCode;
+    }
+
+    public void setResultStatusCode(Integer resultStatusCode) {
+        this.resultStatusCode = resultStatusCode;
     }
 }

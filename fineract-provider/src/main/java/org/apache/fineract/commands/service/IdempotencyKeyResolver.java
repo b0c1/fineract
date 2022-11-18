@@ -18,35 +18,35 @@
  */
 package org.apache.fineract.commands.service;
 
+import java.util.Optional;
 import org.apache.fineract.commands.domain.CommandWrapper;
 import org.apache.fineract.infrastructure.core.config.FineractProperties;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Component
 public class IdempotencyKeyResolver {
 
-    @Autowired
-    private IdempotencyKeyGenerator idempotencyKeyGenerator;
+    private final IdempotencyKeyGenerator idempotencyKeyGenerator;
 
-    @Autowired
-    private FineractProperties fineractProperties;
+    private final FineractProperties fineractProperties;
+
+    public IdempotencyKeyResolver(IdempotencyKeyGenerator idempotencyKeyGenerator, FineractProperties fineractProperties) {
+        this.idempotencyKeyGenerator = idempotencyKeyGenerator;
+        this.fineractProperties = fineractProperties;
+    }
 
     public String resolve(CommandWrapper wrapper) {
-        String requestIdempotencyKey = null;
-        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-        if (requestAttributes != null) {
-            if (requestAttributes instanceof ServletRequestAttributes) {
-                requestIdempotencyKey = ((ServletRequestAttributes) requestAttributes).getRequest()
-                        .getHeader(fineractProperties.getIdempotencyKeyHeaderName());
-            }
-        }
+        return Optional.ofNullable(wrapper.getIdempotencyKey())
+                .orElseGet(() -> getHeaderAttribute().orElseGet(idempotencyKeyGenerator::create));
+    }
 
-        return wrapper.getIdempotencyKey() == null
-                ? (requestIdempotencyKey == null ? idempotencyKeyGenerator.create() : requestIdempotencyKey)
-                : wrapper.getIdempotencyKey();
+    private Optional<String> getHeaderAttribute() {
+        return Optional.ofNullable(RequestContextHolder.getRequestAttributes()) //
+                .filter(ServletRequestAttributes.class::isInstance) //
+                .map(ServletRequestAttributes.class::cast) //
+                .map(ServletRequestAttributes::getRequest) //
+                .map(request -> request.getHeader(fineractProperties.getIdempotencyKeyHeaderName()));
     }
 }

@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 import org.apache.fineract.commands.domain.CommandProcessingResultType;
 import org.apache.fineract.commands.domain.CommandSource;
 import org.apache.fineract.commands.domain.CommandWrapper;
@@ -41,6 +42,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 public class SynchronousCommandProcessingServiceTest {
 
@@ -66,13 +69,18 @@ public class SynchronousCommandProcessingServiceTest {
     @InjectMocks
     private SynchronousCommandProcessingService underTest;
 
+    @Mock
+    private HttpServletRequest request;
+
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
     }
 
     @Test
     public void testExecuteCommandSuccess() {
+
         CommandWrapper commandWrapper = Mockito.mock(CommandWrapper.class);
         when(commandWrapper.isDatatableResource()).thenReturn(false);
         when(commandWrapper.isNoteResource()).thenReturn(false);
@@ -136,7 +144,6 @@ public class SynchronousCommandProcessingServiceTest {
         });
 
         verify(commandSourceService).saveInitial(commandWrapper, jsonCommand, appUser, idk);
-        verify(commandSourceService).saveFailed("{\"Exception\": java.lang.RuntimeException: " + runtimeException.getMessage() + "}",
-                initialCommandSource);
+        verify(commandSourceService).generateErrorException(runtimeException);
     }
 }

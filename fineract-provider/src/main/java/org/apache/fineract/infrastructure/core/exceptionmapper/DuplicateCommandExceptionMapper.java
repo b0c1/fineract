@@ -20,14 +20,12 @@ package org.apache.fineract.infrastructure.core.exceptionmapper;
 
 import static org.apache.fineract.infrastructure.core.data.ApiGlobalErrorResponse.serverSideError;
 
-import com.google.gson.Gson;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.fineract.infrastructure.core.data.ApiGlobalErrorResponse;
 import org.apache.fineract.infrastructure.core.exception.CommandFailedException;
 import org.apache.fineract.infrastructure.core.exception.CommandProcessedException;
 import org.apache.fineract.infrastructure.core.exception.CommandUnderProcessingException;
@@ -39,28 +37,21 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class DuplicateCommandExceptionMapper implements ExceptionMapper<DuplicateCommandException> {
 
+    public static final String IDEMPOTENT_CACHE_HEADER = "x-served-from-cache";
+
     @Override
     public Response toResponse(final DuplicateCommandException exception) {
         log.debug("Duplicate request: {}", exception.getMessage());
         if (exception instanceof CommandProcessedException) {
-            return Response.status(Status.OK).entity(exception.getResponse()).header("x-served-from-cache", "true")
+            return Response.status(Status.OK).entity(exception.getResponse()).header(IDEMPOTENT_CACHE_HEADER, "true")
                     .type(MediaType.APPLICATION_JSON).build();
         } else if (exception instanceof CommandFailedException) {
             String response = exception.getResponse();
-            Status statusCode = Status.BAD_REQUEST;
-            try {
-                Gson gson = new Gson();
-                ApiGlobalErrorResponse apiGlobalErrorResponse = gson.fromJson(response, ApiGlobalErrorResponse.class);
-                String httpStatusCode = apiGlobalErrorResponse.getHttpStatusCode();
-                statusCode = Status.fromStatusCode(Integer.parseInt(httpStatusCode));
-            } catch (Exception ex) {
-                log.error("Can not deserialize exception message to ApiGlobalErrorResponse: {}, fallback to default status code...",
-                        response);
-            }
-            return Response.status(statusCode).entity(response).header("x-served-from-cache", "true").type(MediaType.APPLICATION_JSON)
+            Status statusCode = Status.fromStatusCode(((CommandFailedException) exception).getStatusCode());
+            return Response.status(statusCode).entity(response).header(IDEMPOTENT_CACHE_HEADER, "true").type(MediaType.APPLICATION_JSON)
                     .build();
         } else if (exception instanceof CommandUnderProcessingException) {
-            return Response.status(Status.CONFLICT).entity(exception.getResponse()).header("x-served-from-cache", "true")
+            return Response.status(Status.CONFLICT).entity(exception.getResponse()).header(IDEMPOTENT_CACHE_HEADER, "true")
                     .type(MediaType.APPLICATION_JSON).build();
         } else {
             return Response.status(Status.INTERNAL_SERVER_ERROR).entity(serverSideError("500", "")).type(MediaType.APPLICATION_JSON)

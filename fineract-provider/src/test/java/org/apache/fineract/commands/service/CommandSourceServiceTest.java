@@ -18,14 +18,15 @@
  */
 package org.apache.fineract.commands.service;
 
-import static org.apache.fineract.commands.domain.CommandProcessingResultType.ERROR;
 import static org.apache.fineract.commands.domain.CommandProcessingResultType.UNDER_PROCESSING;
 
 import java.time.ZoneId;
 import java.util.Optional;
+import org.apache.fineract.batch.exception.ErrorInfo;
 import org.apache.fineract.commands.domain.CommandSource;
 import org.apache.fineract.commands.domain.CommandSourceRepository;
 import org.apache.fineract.commands.domain.CommandWrapper;
+import org.apache.fineract.infrastructure.codes.exception.CodeNotFoundException;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
@@ -101,14 +102,10 @@ public class CommandSourceServiceTest {
     }
 
     @Test
-    public void testSaveFailedSuccess() {
-        CommandSource commandSource = Mockito.mock(CommandSource.class);
-        String message = "foo";
-
-        underTest.saveFailed(message, commandSource);
-
-        Mockito.verify(commandSourceRepository).saveAndFlush(commandSource);
-        Mockito.verify(commandSource).setResult(message);
-        Mockito.verify(commandSource).setStatus(ERROR.getValue());
+    public void testGenerateErrorException() {
+        ErrorInfo result = underTest.generateErrorException(new CodeNotFoundException("foo"));
+        Assertions.assertEquals(404, result.getStatusCode());
+        Assertions.assertEquals(1001, result.getErrorCode());
+        Assertions.assertTrue(result.getMessage().contains("Code with name `foo` does not exist"));
     }
 }
