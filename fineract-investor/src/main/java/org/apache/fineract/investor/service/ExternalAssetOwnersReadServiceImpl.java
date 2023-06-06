@@ -23,6 +23,7 @@ import org.apache.fineract.infrastructure.core.service.ExternalIdFactory;
 import org.apache.fineract.investor.data.ExternalTransferData;
 import org.apache.fineract.investor.domain.ExternalAssetOwnerTransfer;
 import org.apache.fineract.investor.domain.ExternalAssetOwnerTransferRepository;
+import org.apache.fineract.investor.exception.ExternalAssetOwnerTransferNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -59,6 +60,12 @@ public class ExternalAssetOwnersReadServiceImpl implements ExternalAssetOwnersRe
                     "At least one of the following parameters must be provided: loanId, externalLoanId, transferExternalId");
         }
         return result.map(mapper::mapTransfer);
+    }
+
+    @Override
+    public ExternalTransferData retrieveTransferData(Long externalTransferId) {
+        return externalAssetOwnerTransferRepository.findById(externalTransferId).map(mapper::mapTransfer)
+                .orElseThrow(() -> new ExternalAssetOwnerTransferNotFoundException(externalTransferId));
     }
 
 }

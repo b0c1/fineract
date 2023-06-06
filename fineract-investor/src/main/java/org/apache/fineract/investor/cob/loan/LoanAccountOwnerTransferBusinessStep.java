@@ -26,6 +26,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.cob.loan.LoanCOBBusinessStep;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
+import org.apache.fineract.infrastructure.event.business.domain.loan.LoanAccountSnapshotBusinessEvent;
+import org.apache.fineract.infrastructure.event.business.service.BusinessEventNotifierService;
 import org.apache.fineract.investor.data.ExternalTransferStatus;
 import org.apache.fineract.investor.data.ExternalTransferSubStatus;
 import org.apache.fineract.investor.domain.ExternalAssetOwnerTransfer;
@@ -33,6 +35,7 @@ import org.apache.fineract.investor.domain.ExternalAssetOwnerTransferDetails;
 import org.apache.fineract.investor.domain.ExternalAssetOwnerTransferLoanMapping;
 import org.apache.fineract.investor.domain.ExternalAssetOwnerTransferLoanMappingRepository;
 import org.apache.fineract.investor.domain.ExternalAssetOwnerTransferRepository;
+import org.apache.fineract.investor.domain.LoanOwnershipTransferBusinessEvent;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -45,6 +48,7 @@ public class LoanAccountOwnerTransferBusinessStep implements LoanCOBBusinessStep
     public static final LocalDate FUTURE_DATE_9999_12_31 = LocalDate.of(9999, 12, 31);
     private final ExternalAssetOwnerTransferRepository externalAssetOwnerTransferRepository;
     private final ExternalAssetOwnerTransferLoanMappingRepository externalAssetOwnerTransferLoanMappingRepository;
+    private final BusinessEventNotifierService businessEventNotifierService;
 
     @Override
     public Loan execute(Loan loan) {
@@ -85,6 +89,8 @@ public class LoanAccountOwnerTransferBusinessStep implements LoanCOBBusinessStep
     private void handleSale(final Loan loan, final LocalDate settlementDate, final ExternalAssetOwnerTransfer externalAssetOwnerTransfer) {
         ExternalAssetOwnerTransfer newExternalAssetOwnerTransfer = sellAsset(loan, settlementDate, externalAssetOwnerTransfer);
         // TODO: trigger asset loan transfer executed event
+        businessEventNotifierService.notifyPreBusinessEvent(new LoanOwnershipTransferBusinessEvent(newExternalAssetOwnerTransfer));
+        businessEventNotifierService.notifyPreBusinessEvent(new LoanAccountSnapshotBusinessEvent(loan));
     }
 
     private void handleBuyback(final Loan loan, final LocalDate settlementDate,
@@ -98,6 +104,8 @@ public class LoanAccountOwnerTransferBusinessStep implements LoanCOBBusinessStep
         ExternalAssetOwnerTransfer newExternalAssetOwnerTransfer = buybackAsset(loan, settlementDate, buybackExternalAssetOwnerTransfer,
                 activeExternalAssetOwnerTransfer);
         // TODO: trigger asset loan transfer executed event
+        businessEventNotifierService.notifyPreBusinessEvent(new LoanOwnershipTransferBusinessEvent(newExternalAssetOwnerTransfer));
+        businessEventNotifierService.notifyPreBusinessEvent(new LoanAccountSnapshotBusinessEvent(loan));
     }
 
     private ExternalAssetOwnerTransfer buybackAsset(final Loan loan, final LocalDate settlementDate,

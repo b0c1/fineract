@@ -41,6 +41,7 @@ import org.apache.fineract.avro.loan.v1.RepaymentPastDueDataV1;
 import org.apache.fineract.infrastructure.businessdate.domain.BusinessDateType;
 import org.apache.fineract.infrastructure.core.domain.ActionContext;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
+import org.apache.fineract.infrastructure.core.service.DataEnricherProcessor;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.core.service.ExternalIdFactory;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
@@ -78,6 +79,9 @@ public class LoanRepaymentBusinessEventSerializerTest {
     @Mock
     private LoanCalculateRepaymentPastDueService pastDueService;
 
+    @Mock
+    private DataEnricherProcessor dataEnricherProcessor;
+
     private MockedStatic<MoneyHelper> moneyHelper = Mockito.mockStatic(MoneyHelper.class);
 
     @BeforeEach
@@ -86,6 +90,7 @@ public class LoanRepaymentBusinessEventSerializerTest {
         ThreadLocalContextUtil.setActionContext(ActionContext.DEFAULT);
         ThreadLocalContextUtil
                 .setBusinessDates(new HashMap<>(Map.of(BusinessDateType.BUSINESS_DATE, LocalDate.now(ZoneId.systemDefault()))));
+        // when(dataEnricherProcessor.enrich(any())).thenAnswer(a -> a.getArguments()[0]);
         moneyHelper.when(() -> MoneyHelper.getRoundingMode()).thenReturn(RoundingMode.UP);
     }
 
